@@ -20,8 +20,12 @@ builder.Services.AddMcpServer(options =>
     };
 });
 
-// Register our date tool
+// Register our tools
 builder.Services.AddSingleton<McpServerTool, DateTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidDevicesTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidInstallApkTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidShellTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidListPackagesTool>();
 
 var host = builder.Build();
 
