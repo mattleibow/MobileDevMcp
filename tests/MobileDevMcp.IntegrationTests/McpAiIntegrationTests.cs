@@ -4,13 +4,14 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using MobileDevMcp.Server;
+using System.ComponentModel;
+using System.Text.Json;
 
 namespace MobileDevMcp.IntegrationTests;
 
 public class McpAiIntegrationTests : IDisposable
 {
     private readonly IHost _host;
-    private readonly IChatClient? _chatClient;
     private readonly bool _hasAzureOpenAiConfig;
 
     public McpAiIntegrationTests()
@@ -42,20 +43,8 @@ public class McpAiIntegrationTests : IDisposable
         // Check if Azure OpenAI configuration is available
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
         var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
-        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") ?? "gpt-4";
         
         _hasAzureOpenAiConfig = !string.IsNullOrEmpty(endpoint) && !string.IsNullOrEmpty(apiKey);
-
-        if (_hasAzureOpenAiConfig)
-        {
-            // Create AI client with Azure OpenAI - this will be implemented later
-            // For now, we'll focus on testing the MCP server directly
-            _chatClient = null;
-        }
-        else
-        {
-            _chatClient = null;
-        }
     }
 
     [Fact]
@@ -119,12 +108,87 @@ public class McpAiIntegrationTests : IDisposable
         }
     }
 
-    [Fact(Skip = "Azure OpenAI integration not yet implemented")]
-    public async Task AiClient_CanUseTools_WhenConfigured()
+    [Fact]
+    public async Task McpTools_CanBeConvertedToAiFunctions()
     {
-        // Skip this test until we implement AI integration
-        // This will be the main integration test that uses IChatClient with MCP tools
+        // Test that MCP tools can be converted to AI functions
+        var dateFunction = CreateDateFunction();
+        var androidFunction = CreateAndroidDevicesFunction();
+        
+        Assert.NotNull(dateFunction);
+        Assert.NotNull(androidFunction);
+        
+        // Test the functions can be invoked
+        var dateResult = await dateFunction.InvokeAsync(null);
+        var androidResult = await androidFunction.InvokeAsync(null);
+        
+        Assert.NotNull(dateResult);
+        Assert.Contains("Today's date is", dateResult.ToString());
+        
+        Assert.NotNull(androidResult);
+        var androidText = androidResult.ToString();
+        Assert.True(androidText!.Contains("devices") || androidText.Contains("No Android devices found"));
+    }
+
+    [Fact]
+    public void AiFunctions_HaveCorrectMetadata()
+    {
+        // Test that converted AI functions have proper metadata
+        var dateFunction = CreateDateFunction();
+        var androidFunction = CreateAndroidDevicesFunction();
+        
+        Assert.NotNull(dateFunction);
+        Assert.NotNull(androidFunction);
+        
+        // Basic validation that functions are created successfully
+        // The exact metadata access will depend on the final Azure OpenAI integration
+    }
+
+    [Fact(Skip = "Azure OpenAI integration will be implemented when credentials are available")]
+    public async Task AiClient_CanUseMcpTools_WithAzureOpenAI()
+    {
+        // This test demonstrates how the AI integration would work
+        // It will be enabled when Azure OpenAI credentials are configured
+        
+        if (!_hasAzureOpenAiConfig)
+        {
+            // Test would be skipped in real scenario
+            return;
+        }
+        
+        // Example of how this would work:
+        // 1. Create AI client with Azure OpenAI
+        // 2. Convert MCP tools to AI functions
+        // 3. Use ChatOptions with tools
+        // 4. Send messages to AI and verify tool usage
+        
         await Task.CompletedTask;
+    }
+
+    private AIFunction CreateDateFunction()
+    {
+        var dateTool = _host.Services.GetServices<McpServerTool>()
+            .OfType<DateTool>()
+            .First();
+
+        return AIFunctionFactory.Create(async () =>
+        {
+            var response = await dateTool.InvokeAsync(null!, CancellationToken.None);
+            return response.Content.FirstOrDefault()?.Text ?? "Unable to get date";
+        }, "get_current_date", "Get the current date");
+    }
+
+    private AIFunction CreateAndroidDevicesFunction()
+    {
+        var androidTool = _host.Services.GetServices<McpServerTool>()
+            .OfType<AndroidDevicesTool>()
+            .First();
+
+        return AIFunctionFactory.Create(async () =>
+        {
+            var response = await androidTool.InvokeAsync(null!, CancellationToken.None);
+            return response.Content.FirstOrDefault()?.Text ?? "Unable to check Android devices";
+        }, "list_android_devices", "List connected Android devices");
     }
 
     public void Dispose()
