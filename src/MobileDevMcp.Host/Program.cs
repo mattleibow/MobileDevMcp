@@ -26,6 +26,7 @@ builder.Services.AddSingleton<McpServerTool, AndroidDevicesTool>();
 builder.Services.AddSingleton<McpServerTool, AndroidInstallApkTool>();
 builder.Services.AddSingleton<McpServerTool, AndroidShellTool>();
 builder.Services.AddSingleton<McpServerTool, AndroidListPackagesTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidListAvdsTool>();
 
 var host = builder.Build();
 

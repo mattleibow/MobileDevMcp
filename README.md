@@ -9,9 +9,16 @@ This project provides an MCP server that offers tools useful for mobile developm
 ## Features
 
 - **Date Tool**: Returns the current date in `yyyy-MM-dd` format
+- **Android Development Tools**: Comprehensive set of Android development utilities
+  - **Device Management**: List and interact with connected Android devices and emulators
+  - **App Installation**: Install and manage APK files on devices
+  - **Shell Commands**: Execute ADB shell commands remotely
+  - **Package Management**: List and filter installed packages
+  - **Virtual Device Management**: List available Android Virtual Devices (AVDs)
 - Built with .NET 8 and the ModelContextProtocol C# SDK
 - Comprehensive test coverage
 - Clean architecture with separation of concerns
+- AndroidSdk NuGet package integration for robust Android tooling
 
 ## Project Structure
 
@@ -60,6 +67,72 @@ Returns the current date.
 
 **Example Usage**:
 When asked "what is the date today", the tool responds with "Today's date is 2025-01-15" (or the current date).
+
+### android-devices
+
+List connected Android devices and emulators.
+
+**Description**: List connected Android devices and emulators  
+**Parameters**: None  
+**Response**: List of connected devices with their serial numbers, products, models, and emulator status
+
+**Example Usage**:
+When asked "list my android devices", the tool responds with details of all connected Android devices and emulators.
+
+### android-install-apk
+
+Install an APK file to a connected Android device.
+
+**Description**: Install an APK file to a connected Android device  
+**Parameters**:
+- `apkPath` (required): Path to the APK file to install
+- `deviceSerial` (optional): Device serial number (uses first available if not specified)
+- `reinstall` (optional): Whether to reinstall if app is already installed (default: false)
+
+**Response**: Success or error message with installation details
+
+**Example Usage**:
+"Install this APK /path/to/app.apk to my device" - installs the specified APK to the first available device.
+
+### android-shell
+
+Execute ADB shell commands on a connected Android device.
+
+**Description**: Execute ADB shell commands on a connected Android device  
+**Parameters**:
+- `command` (required): Shell command to execute on the device
+- `deviceSerial` (optional): Device serial number (uses first available if not specified)
+
+**Response**: Command output from the device
+
+**Example Usage**:
+"Run 'getprop ro.build.version.release' on my android device" - executes the shell command and returns the Android version.
+
+### android-list-packages
+
+List installed packages on a connected Android device.
+
+**Description**: List installed packages on a connected Android device  
+**Parameters**:
+- `deviceSerial` (optional): Device serial number (uses first available if not specified)
+- `includeUninstalled` (optional): Include uninstalled packages (default: false)
+- `filter` (optional): Filter packages by name containing this string
+
+**Response**: List of installed packages (limited to first 50 for readability)
+
+**Example Usage**:
+"List packages containing 'google' on my device" - shows all installed packages with 'google' in their name.
+
+### android-list-avds
+
+List available Android Virtual Devices (AVDs).
+
+**Description**: List available Android Virtual Devices (AVDs)  
+**Parameters**: None  
+**Response**: List of available AVDs with their names, targets, devices, and configuration details
+
+**Example Usage**:
+"Show my android emulators" - displays all configured Android Virtual Devices available for use.
 
 ## Development
 
