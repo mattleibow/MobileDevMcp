@@ -9,6 +9,10 @@ This project provides an MCP server that offers tools useful for mobile developm
 ## Features
 
 - **Date Tool**: Returns the current date in `yyyy-MM-dd` format
+- **Android Tools**: A collection of tools for Android development:
+  - **Android Devices List**: List all connected Android devices and emulators
+  - **Android Shell**: Execute shell commands on Android devices
+  - **Android Install APK**: Install APK files on connected devices
 - Built with .NET 8 and the ModelContextProtocol C# SDK
 - Comprehensive test coverage
 - Clean architecture with separation of concerns
@@ -61,6 +65,43 @@ Returns the current date.
 **Example Usage**:
 When asked "what is the date today", the tool responds with "Today's date is 2025-01-15" (or the current date).
 
+### android-devices-list
+
+Lists all connected Android devices and emulators.
+
+**Description**: List all connected Android devices and emulators  
+**Parameters**: None  
+**Response**: Text content with device information including serial numbers, states, and models
+
+**Example Usage**:
+When asked "what Android devices are connected", the tool responds with a list of connected devices.
+
+### android-shell
+
+Execute shell commands on connected Android devices.
+
+**Description**: Execute a shell command on a connected Android device  
+**Parameters**: 
+- `command` (required): Shell command to execute
+- `deviceSerial` (optional): Device serial number to target  
+**Response**: Text content with command execution results
+
+**Example Usage**:
+Execute "getprop ro.build.version.release" to get Android version.
+
+### android-install-apk
+
+Install APK files on connected Android devices.
+
+**Description**: Install an APK file on a connected Android device  
+**Parameters**: 
+- `apkPath` (required): Path to the APK file to install
+- `deviceSerial` (optional): Device serial number to target  
+**Response**: Text content with installation preparation details
+
+**Example Usage**:
+Install an APK file located at "/path/to/app.apk" on the connected device.
+
 ## Development
 
 ### Adding New Tools
@@ -87,13 +128,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
-This is a foundation project for mobile development MCP tools. Future enhancements could include:
+This is a foundation project for mobile development MCP tools. The project now includes Android development tools powered by the AdvancedSharpAdbClient package. Future enhancements could include:
 
-- Android SDK tools (build, deploy, debug)
+- More Android SDK tools (logcat with filtering, package management, etc.)
 - iOS development utilities
 - Cross-platform mobile framework helpers
-- Device management tools
+- Enhanced device management tools
 - App store deployment helpers
+- Build and deployment automation tools
 
 ## References
 
