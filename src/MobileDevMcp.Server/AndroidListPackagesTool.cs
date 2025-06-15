@@ -40,7 +40,7 @@ public class AndroidListPackagesTool : McpServerTool
         try
         {
             // Extract parameters from context
-            var arguments = context.Params.Arguments;
+            var arguments = context?.Params?.Arguments ?? new Dictionary<string, JsonElement>();
             
             // Get optional parameters
             var deviceSerial = arguments.ContainsKey("deviceSerial") 

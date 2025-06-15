@@ -36,7 +36,7 @@ public class AndroidShellTool : McpServerTool
         try
         {
             // Extract parameters from context
-            var arguments = context.Params.Arguments;
+            var arguments = context?.Params?.Arguments ?? new Dictionary<string, JsonElement>();
             
             if (!arguments.ContainsKey("command"))
             {

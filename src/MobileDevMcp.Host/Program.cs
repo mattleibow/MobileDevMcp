@@ -27,6 +27,15 @@ builder.Services.AddSingleton<McpServerTool, AndroidInstallApkTool>();
 builder.Services.AddSingleton<McpServerTool, AndroidShellTool>();
 builder.Services.AddSingleton<McpServerTool, AndroidListPackagesTool>();
 builder.Services.AddSingleton<McpServerTool, AndroidListAvdsTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidCreateAvdTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidStartAvdTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidStopAvdTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidLaunchAppTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidUninstallAppTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidPushFileTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidPullFileTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidLogcatTool>();
+builder.Services.AddSingleton<McpServerTool, AndroidSdkManagerTool>();
 
 var host = builder.Build();
 
