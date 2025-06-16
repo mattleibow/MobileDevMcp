@@ -6,6 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
 using MobileDevMcp.Server;
 
 namespace MobileDevMcp.IntegrationTests;
@@ -20,7 +22,7 @@ public class RealWorldMcpIntegrationTests : IAsyncDisposable
 {
     private readonly bool _hasAzureOpenAiConfig;
     private readonly IChatClient? _chatClient;
-    private Process? _serverProcess;
+    private IMcpClient? _mcpClient;
     private readonly string _hostProjectPath;
 
     public RealWorldMcpIntegrationTests()
@@ -62,17 +64,50 @@ public class RealWorldMcpIntegrationTests : IAsyncDisposable
     [Fact]
     public async Task McpServer_CanBeStartedAsSeparateProcess()
     {
-        // This test demonstrates starting the MCP server as a separate process,
+        // This test demonstrates connecting to the MCP server as a separate process,
         // which is how it would be deployed in real scenarios.
         
-        await StartMcpServerProcessAsync();
+        var discoveredTools = await DiscoverAvailableToolsFromServerAsync();
         
-        Assert.NotNull(_serverProcess);
-        Assert.False(_serverProcess.HasExited, "MCP server process should be running");
+        Assert.NotNull(_mcpClient);
+        Assert.NotEmpty(discoveredTools);
         
-        // Give the server time to start and verify it's responsive
-        await Task.Delay(3000);
-        Assert.False(_serverProcess.HasExited, "MCP server should still be running after startup");
+        // Verify the client can discover tools from the server
+        Assert.True(discoveredTools.Count > 0, "MCP server should provide tools");
+    }
+
+    [Fact]
+    public async Task McpServer_RegisteredToolsCanBeDiscoveredAndInvoked()
+    {
+        // This test verifies that tools are correctly registered on the server
+        // and can be discovered and invoked via the MCP protocol
+        
+        // Discover tools using actual MCP list_tools request
+        var discoveredTools = await DiscoverAvailableToolsFromServerAsync();
+        
+        // Verify tools are discovered
+        Assert.NotEmpty(discoveredTools);
+        
+        // Verify specific tools that should be registered
+        var toolNames = discoveredTools.Select(t => t.Name).ToList();
+        Assert.Contains("get-date", toolNames);
+        Assert.Contains("android-devices", toolNames);
+        
+        // Test that we can actually invoke a tool via MCP protocol
+        if (_mcpClient != null)
+        {
+            var arguments = new Dictionary<string, object?>();
+            
+            var response = await _mcpClient.CallToolAsync("get-date", arguments);
+            
+            Assert.NotNull(response);
+            Assert.NotNull(response.Content);
+            Assert.NotEmpty(response.Content);
+            
+            var textContent = response.Content.FirstOrDefault(c => c.Type == "text");
+            Assert.NotNull(textContent);
+            Assert.Contains("Today's date is", textContent.Text);
+        }
     }
 
     [Fact]
@@ -82,20 +117,16 @@ public class RealWorldMcpIntegrationTests : IAsyncDisposable
         if (!_hasAzureOpenAiConfig || _chatClient == null)
         {
             // Demonstrate the server startup pattern even without Azure OpenAI
-            await StartMcpServerProcessAsync();
             var discoveredTools = await DiscoverAvailableToolsFromServerAsync();
             
             Assert.NotEmpty(discoveredTools);
-            Assert.Contains(discoveredTools, t => t.Contains("date"));
-            Assert.Contains(discoveredTools, t => t.Contains("android"));
+            Assert.Contains(discoveredTools, t => t.Name.Contains("date"));
+            Assert.Contains(discoveredTools, t => t.Name.Contains("android"));
             
             Assert.True(true, "Test skipped: Azure OpenAI not configured. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY environment variables to enable full AI integration tests.");
             return;
         }
 
-        // Start MCP server in separate process (like production deployment)
-        await StartMcpServerProcessAsync();
-        
         // Discover available tools from the running server
         var availableTools = await DiscoverAvailableToolsFromServerAsync();
         Assert.NotEmpty(availableTools);
@@ -133,15 +164,13 @@ public class RealWorldMcpIntegrationTests : IAsyncDisposable
         // Skip this test if Azure OpenAI is not configured
         if (!_hasAzureOpenAiConfig || _chatClient == null)
         {
-            await StartMcpServerProcessAsync();
             var tools = await DiscoverAvailableToolsFromServerAsync();
             Assert.NotEmpty(tools);
             Assert.True(true, "Test skipped: Azure OpenAI not configured.");
             return;
         }
 
-        // Start server and discover tools
-        await StartMcpServerProcessAsync();
+        // Discover tools and create AI functions
         var availableTools = await DiscoverAvailableToolsFromServerAsync();
         var aiFunctions = CreateAIFunctionsFromDiscoveredTools(availableTools);
         
@@ -166,93 +195,68 @@ public class RealWorldMcpIntegrationTests : IAsyncDisposable
         // The AI would provide information about both date and Android devices
     }
 
-    private async Task StartMcpServerProcessAsync()
+    private async Task<List<McpClientTool>> DiscoverAvailableToolsFromServerAsync()
     {
-        if (_serverProcess != null)
-            return;
-
-        var startInfo = new ProcessStartInfo
+        // Create MCP client to communicate with the running server
+        if (_mcpClient == null)
         {
-            FileName = "dotnet",
-            Arguments = $"run --project \"{_hostProjectPath}\"",
-            UseShellExecute = false,
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
-
-        _serverProcess = new Process { StartInfo = startInfo };
-        _serverProcess.Start();
-
-        // Give the server time to start up
-        await Task.Delay(2000);
-        
-        if (_serverProcess.HasExited)
-        {
-            var stderr = await _serverProcess.StandardError.ReadToEndAsync();
-            throw new InvalidOperationException($"MCP server failed to start. Error: {stderr}");
+            // Use stdio transport to communicate with the server process
+            var transport = new StdioClientTransport(new StdioClientTransportOptions
+            {
+                Command = "dotnet",
+                Arguments = new List<string> { "run", "--project", _hostProjectPath }
+            });
+            
+            _mcpClient = await McpClientFactory.CreateAsync(transport, new McpClientOptions(), null);
         }
+        
+        // Query the server for available tools using the MCP protocol
+        var tools = await _mcpClient.ListToolsAsync();
+        
+        return tools.ToList();
     }
 
-    private async Task<List<string>> DiscoverAvailableToolsFromServerAsync()
+    private List<AIFunction> CreateAIFunctionsFromDiscoveredTools(List<McpClientTool> tools)
     {
-        // In a real implementation, this would query the MCP server via the protocol
-        // to discover available tools. For now, we simulate this by knowing what tools
-        // our server provides. In production, this would be done via MCP list_tools request.
-        
-        await Task.Delay(100); // Simulate async discovery
-        
-        // These are the tools that would be discovered from the running server
-        return new List<string>
-        {
-            "get-current-date",
-            "android-devices",
-            "android-install-apk",
-            "android-shell",
-            "android-list-packages",
-            "android-list-avds",
-            "android-create-avd",
-            "android-start-avd",
-            "android-stop-avd",
-            "android-launch-app",
-            "android-uninstall-app",
-            "android-push-file",
-            "android-pull-file",
-            "android-logcat",
-            "android-sdk-manager"
-        };
-    }
-
-    private List<AIFunction> CreateAIFunctionsFromDiscoveredTools(List<string> toolNames)
-    {
-        // In a real implementation, this would create AI functions that call back to the
-        // MCP server via the protocol. For now, we create local implementations that
-        // demonstrate the pattern.
+        // Create AI functions that call back to the MCP server via the protocol.
+        // This demonstrates the real integration pattern where AI functions 
+        // invoke MCP tools through proper client-server communication.
         
         var functions = new List<AIFunction>();
         
-        foreach (var toolName in toolNames)
+        foreach (var tool in tools)
         {
-            AIFunction function = toolName switch
+            var toolName = tool.Name;
+            var toolDescription = tool.Description ?? $"Execute {toolName} tool";
+            
+            // Create an AI function that will call the MCP server when invoked
+            var function = AIFunctionFactory.Create(async () =>
             {
-                "get-current-date" => AIFunctionFactory.Create(() =>
-                {
-                    // In production, this would send an MCP call_tool request to the server
-                    return $"Today's date is {DateTime.Now:yyyy-MM-dd}";
-                }, "get_current_date", "Get the current date"),
+                if (_mcpClient == null)
+                    return "MCP client not initialized";
                 
-                "android-devices" => AIFunctionFactory.Create(() =>
+                try
                 {
-                    // In production, this would send an MCP call_tool request to the server
-                    return "No Android devices found (simulated response from server)";
-                }, "list_android_devices", "List connected Android devices"),
-                
-                _ => AIFunctionFactory.Create(() =>
+                    // Make actual MCP call_tool request to the server
+                    var arguments = new Dictionary<string, object?>(); // No arguments for these tools
+                    
+                    var response = await _mcpClient.CallToolAsync(toolName, arguments);
+                    
+                    // Extract text content from the response
+                    if (response.Content != null && response.Content.Any())
+                    {
+                        return string.Join("\n", response.Content
+                            .Where(c => c.Type == "text")
+                            .Select(c => c.Text ?? ""));
+                    }
+                    
+                    return "Tool executed successfully but returned no content";
+                }
+                catch (Exception ex)
                 {
-                    return $"Tool {toolName} executed (simulated response from MCP server)";
-                }, toolName.Replace("-", "_"), $"Execute {toolName} tool")
-            };
+                    return $"Error calling tool {toolName}: {ex.Message}";
+                }
+            }, toolName.Replace("-", "_"), toolDescription);
             
             functions.Add(function);
         }
@@ -262,20 +266,16 @@ public class RealWorldMcpIntegrationTests : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (_serverProcess != null && !_serverProcess.HasExited)
+        // Clean up MCP client
+        if (_mcpClient != null)
         {
             try
             {
-                _serverProcess.Kill();
-                await _serverProcess.WaitForExitAsync();
+                await _mcpClient.DisposeAsync();
             }
             catch
             {
                 // Ignore cleanup errors
-            }
-            finally
-            {
-                _serverProcess.Dispose();
             }
         }
     }
