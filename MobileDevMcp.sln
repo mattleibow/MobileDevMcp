@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2200FF42
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MobileDevMcp.Tests", "tests\MobileDevMcp.Tests\MobileDevMcp.Tests.csproj", "{32A96F72-806D-4405-AD65-AC9A49A25845}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MobileDevMcp.IntegrationTests", "tests\MobileDevMcp.IntegrationTests\MobileDevMcp.IntegrationTests.csproj", "{2A49F174-3BE1-436D-8370-5CE5C6ED3EF9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,10 +36,15 @@ Global
 		{32A96F72-806D-4405-AD65-AC9A49A25845}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32A96F72-806D-4405-AD65-AC9A49A25845}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32A96F72-806D-4405-AD65-AC9A49A25845}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A49F174-3BE1-436D-8370-5CE5C6ED3EF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A49F174-3BE1-436D-8370-5CE5C6ED3EF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A49F174-3BE1-436D-8370-5CE5C6ED3EF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A49F174-3BE1-436D-8370-5CE5C6ED3EF9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{36C80F78-68FE-478E-BA5B-CEE048A3D367} = {97E0C3B2-773A-4522-A95C-165B297138B5}
 		{A5762B59-CCA5-40C6-A669-F893D3315E82} = {97E0C3B2-773A-4522-A95C-165B297138B5}
 		{32A96F72-806D-4405-AD65-AC9A49A25845} = {2200FF42-FCDF-456C-80E2-C88F546B0B3F}
+		{2A49F174-3BE1-436D-8370-5CE5C6ED3EF9} = {2200FF42-FCDF-456C-80E2-C88F546B0B3F}
 	EndGlobalSection
 EndGlobal
