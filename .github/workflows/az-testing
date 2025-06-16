@@ -1,6 +1,10 @@
 name: Run Azure Login with OIDC
 
-on: [push]
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
 
 permissions:
   id-token: write
